@@ -25,7 +25,22 @@ def add_new_section(name):
 def send_tg_message(msg):
     tg.bot.send_message(chat_id=conf.CHAT_ID, text=msg, parse_mode=ParseMode.MARKDOWN)
 
+def dataParser(currentOrder):
+    #split rawdata
+    msg_raw = str(currentOrder).split(' ')    
+    price_to_btc = float(msg_raw[6])
+    abc = 1/price_to_btc   
+    price_str = str('%.8f' % abc)+' sat.'
+    msg_raw[6] = price_str
+    msg_raw[7] = ""
+    send_msg =""
+    
+    for msg in msg_raw:
+        send_msg = send_msg + ' ' + msg        
+    
+    return send_msg
 
+ 
 def on_block(args, **kwargs):
     for username in conf.ACCOUNTS:
         add_new_section(username)
@@ -41,18 +56,19 @@ def on_block(args, **kwargs):
             op = FilledOrder(op)
             op['trxid'] = trxid
 
-            if trxid == latest_order:
+            if trxid == latest_order:                     
+                new_orders.append(op)                
                 break
 
             if first_order == None:
                 first_order = trxid
-
-            new_orders.append(op)
-
+            
         if latest_order != None and len(new_orders):
             # Reversed sort order to get them in timeline order
             for op in new_orders[::-1]:
-                send_tg_message('*' + username + '*: ' + str(op).replace('sell', '_sold_'))
+                # modify message                
+                send_msg = dataParser(op)
+                send_tg_message('*' + username + '*: ' + send_msg.replace('sell', '_sold_'))
 
         if first_order:
             config.set(username, 'last_order_id', first_order)
